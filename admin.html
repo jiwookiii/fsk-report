@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>보안 문서 계정 발급 도구</title>
+<style>
+:root{--navy:#0E306D;--orange:#F47725;--ink:#1f2329;--muted:#5c646e;--line:#e3e6ea;--bad:#EA002C;--good:#0072C6}
+*{box-sizing:border-box}body{margin:0;font:14px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);background:#f6f7f9}
+header{background:var(--navy);color:#fff;padding:16px 28px;font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}header small{font-weight:400;opacity:.75;font-size:12px;flex:1;min-width:200px}header a{color:#fff;font-size:12.5px;font-weight:600;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:5px 10px;text-decoration:none}
+main{max-width:980px;margin:22px auto;padding:0 20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px}h2 .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--navy);color:#fff;font-size:12px}
+p.d,label.d{margin:0 0 12px;color:var(--muted);font-size:12.5px}label.d{display:block;margin-bottom:4px}
+input[type=text],input[type=password]{font:inherit;padding:7px 9px;border:1px solid #cfd4db;border-radius:6px;width:100%}
+.tw{overflow-x:auto}table{width:100%;min-width:760px;border-collapse:collapse}th,td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-weight:600;font-size:12px}
+button{font:inherit;cursor:pointer;border:1px solid #cfd4db;background:#fff;border-radius:6px;padding:7px 12px}button.p{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;padding:10px 18px}button.x{border:0;color:var(--muted);padding:4px 8px}button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.msg{font-size:13px;margin-top:10px;word-break:break-all}.msg.bad{color:var(--bad)}.msg.good{color:var(--good)}
+.warn{border-left:3px solid var(--orange);background:#fff8f2;padding:10px 14px;font-size:12.5px;color:#4b3a2a;border-radius:4px}
+textarea{width:100%;height:120px;font:12.5px/1.5 Consolas,monospace;padding:8px;border:1px solid #cfd4db;border-radius:6px}
+.pwcell{display:flex;gap:6px}.pwcell button{white-space:nowrap;flex:none}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+details summary{cursor:pointer;font-size:13px;font-weight:600}
+</style>
+</head>
+<body>
+<header>보안 문서 계정 발급 도구 <small>원본 HTML을 암호화하고 로그인 계정을 발급함 · 암호화는 이 브라우저 안에서만 처리</small><a href="./" target="_blank" rel="noopener">로그인 화면 열기</a></header>
+<main>
+<div class="card">
+ <h2><span class="n">1</span>원본 HTML 선택</h2>
+ <p class="d">보안을 걸 보고서 HTML 원본(암호화 전 파일). 원본은 저장소에 올리지 말 것</p>
+ <div class="row"><input type="file" id="src" accept=".html,.htm"><span id="srcInfo" class="d" style="margin:0"></span></div>
+ <div class="g3" style="margin-top:10px">
+  <div><label class="d">로그인 화면에 보일 문서 제목 (누구나 볼 수 있음)</label><input type="text" id="title" value="보안 문서"></div>
+  <div><label class="d">워터마크 회사명 (암호화되어 저장됨)</label><input type="text" id="co" placeholder="예: 회사명"></div>
+ </div>
+</div>
+
+<div class="card">
+ <h2><span class="n">2</span>계정 만들기</h2>
+ <p class="d">로그인 후 화면 전체에 "회사 / 부서 / 사번 / 성명" 워터마크가 45° 대각선으로 고정 표시됨(계정별). 아이디는 대소문자 구분 없음. 비밀번호는 12자 이상 필수(공개 게시 파일은 누구나 내려받아 대입 시도가 가능함). [자동]은 14자 무작위 생성</p>
+ <div class="tw"><table><thead><tr><th style="width:13%">받는 사람 (메모)</th><th style="width:14%">아이디</th><th style="width:22%">비밀번호</th><th style="width:15%">부서 (워터마크)</th><th style="width:11%">사번</th><th style="width:11%">성명</th><th style="width:40px"></th></tr></thead><tbody id="acc"></tbody></table></div>
+ <div class="row" style="margin-top:10px"><button id="add">+ 계정 추가</button><button id="autoAll">빈 비밀번호 모두 자동 생성</button><button id="clr">전체 지우기</button><button id="csvIn">기존 계정목록 CSV 불러오기</button><input type="file" id="csvFile" accept=".csv" hidden></div>
+ <p class="d" style="margin:8px 0 0">매월 보고서만 교체할 때는 지난번에 내려받은 계정목록.csv를 불러오면 같은 아이디·비밀번호로 다시 발급됨</p>
+ <details style="margin-top:12px"><summary>엑셀에서 여러 명 한 번에 붙여넣기</summary><p class="d" style="margin:8px 0 6px">엑셀에서 <b>받는 사람 · 아이디 · 부서 · 사번 · 성명</b> 5열(머리글 없이)을 복사해 붙여넣기. 비밀번호 열을 넣으려면 6번째 열로 추가. 비밀번호가 없으면 자동 생성</p><textarea id="bulk" placeholder="예)
+본부장님	head01	OO본부	XXX0000	홍길동
+팀장님	lead02	OO본부	XXX0001	김철수"></textarea><div class="row" style="margin-top:8px"><button id="bulkGo">표에 추가</button><span id="bulkMsg" class="d" style="margin:0"></span></div></details>
+</div>
+
+<div class="card">
+ <h2><span class="n">3</span>암호화 데이터 만들기</h2>
+ <p class="d">버튼을 누르면 <b>report.enc.json</b>이 내려받아짐. 이 파일이 로그인 화면(index.html)이 읽는 암호화 데이터임</p>
+ <button class="p" id="gen">암호화 데이터 생성</button>
+ <div id="out" class="msg"></div>
+ <div id="dist" style="display:none;margin-top:14px">
+  <p class="d" style="margin-bottom:6px"><b>배포용 계정 목록</b> — 접속 주소와 비밀번호는 다른 경로로 전달 (예: 주소는 메일, 비밀번호는 메신저). 계정목록 CSV는 저장소에 올리지 말 것</p>
+  <textarea id="distTxt" readonly></textarea>
+  <div class="row" style="margin-top:8px"><button id="copy">복사</button><button id="csv">계정목록 CSV 내려받기</button></div>
+ </div>
+</div>
+
+<div class="card">
+ <h2><span class="n">4</span>게시</h2>
+ <p class="d">방법 A: 내려받은 report.enc.json을 저장소의 <b>data/</b> 폴더에 올림(기존 파일 덮어쓰기). 방법 B: 아래에서 GitHub에 바로 게시</p>
+ <details id="ghBox"><summary>GitHub에 바로 게시 (방법 B)</summary>
+  <div class="g3" style="margin-top:10px">
+   <div><label class="d">소유자 (계정 또는 조직)</label><input type="text" id="ghOwner" placeholder="예: my-account"></div>
+   <div><label class="d">저장소 이름</label><input type="text" id="ghRepo" placeholder="예: report"></div>
+   <div><label class="d">브랜치</label><input type="text" id="ghBranch" value="main"></div>
+  </div>
+  <div style="margin-top:10px"><label class="d">액세스 토큰 — 해당 저장소 하나에 Contents 읽기/쓰기만 허용한 fine-grained 토큰. 저장되지 않으며 api.github.com으로만 전송됨</label><input type="password" id="ghTok" autocomplete="off" placeholder="github_pat_…"></div>
+  <div class="row" style="margin-top:10px"><button class="p" id="pub" disabled>GitHub에 게시</button><span class="d" style="margin:0">3단계 생성 후 활성화됨</span></div>
+  <div id="pubMsg" class="msg"></div>
+ </details>
+</div>
+
+<div class="warn">
+ <b>운영 시 주의</b><br>
+ · 보고서 내용은 비밀번호로 암호화됨. 저장소가 공개여도 비밀번호 없이는 내용이 보이지 않음. 단, 암호문은 누구나 내려받을 수 있으므로 짧거나 추측 가능한 비밀번호는 금지<br>
+ · 한 번 게시한 암호문은 저장소 이력에 남음. 계정을 회수해도 이전 게시분은 그 계정으로 계속 열림. 새 보고서부터 새 계정이 적용됨<br>
+ · 원본 HTML과 계정목록 CSV는 저장소에 올리지 말 것. 한 번 올리면 이력에서 지우기 어려움<br>
+ · 비밀번호를 잊으면 복구 불가. 원본 HTML과 계정목록 CSV는 따로 보관<br>
+ · 로그인 기록(누가 언제 열었는지)은 남지 않음 · Chrome·Edge 최신 버전에서 사용
+</div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const ITER=600000,DATA_DIR='data',DATA_NAME='report.enc.json';
+let srcHtml=null,srcName='report',lastPayload=null,lastList=[];
+const enc=new TextEncoder();
+const b64=u8=>{let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
+const d64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ls={get:k=>{try{return localStorage.getItem('sdoc.'+k)||''}catch(e){return ''}},set:(k,v)=>{try{localStorage.setItem('sdoc.'+k,v)}catch(e){}}};
+// 회사명·저장소 정보만 이 브라우저에 기억(토큰·비밀번호는 저장하지 않음)
+[['co','#co'],['owner','#ghOwner'],['repo','#ghRepo'],['branch','#ghBranch']].forEach(([k,s])=>{const el=$(s),v=ls.get(k);if(v)el.value=v;el.addEventListener('change',()=>ls.set(k,el.value.trim()))});
+(()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/);if(!m)return;if(!$('#ghOwner').value)$('#ghOwner').value=m[1];const seg=location.pathname.split('/').filter(Boolean);if(!$('#ghRepo').value)$('#ghRepo').value=seg.length>1||(seg[0]&&!/\.html?$/i.test(seg[0]))?seg[0]:m[1]+'.github.io'})();
+
+function genPw(){const A='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';const r=rnd(14);return Array.from(r,x=>A[x%A.length]).join('')}
+function addRow(name='',id='',pw='',dept='',emp='',pn=''){const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="nm" placeholder="예: 본부장님" value="${esc(name)}"></td><td><input type="text" class="id" placeholder="예: head01" value="${esc(id)}"></td><td><div class="pwcell"><input type="text" class="pw" placeholder="12자 이상" value="${esc(pw)}"><button class="auto" type="button">자동</button></div></td><td><input type="text" class="dp" placeholder="부서" value="${esc(dept)}"></td><td><input type="text" class="em" placeholder="사번" value="${esc(emp)}"></td><td><input type="text" class="pn" placeholder="성명" value="${esc(pn)}"></td><td><button class="x" type="button" title="삭제">✕</button></td>`;
+ tr.querySelector('.auto').onclick=()=>{tr.querySelector('.pw').value=genPw()};tr.querySelector('.x').onclick=()=>tr.remove();$('#acc').appendChild(tr)}
+function dropEmptyRows(){document.querySelectorAll('#acc tr').forEach(tr=>{if(![...tr.querySelectorAll('input')].some(i=>i.value.trim()))tr.remove()})}
+addRow();
+$('#add').onclick=()=>addRow();
+$('#autoAll').onclick=()=>{let n=0;document.querySelectorAll('#acc tr').forEach(tr=>{const id=tr.querySelector('.id').value.trim(),pw=tr.querySelector('.pw');if(id&&!pw.value){pw.value=genPw();n++}});$('#out').className='msg good';$('#out').textContent=n?`비밀번호 ${n}개 자동 생성`:'비밀번호가 빈 계정 없음'};
+$('#clr').onclick=()=>{if(confirm('입력한 계정을 모두 지울까요?')){$('#acc').innerHTML='';addRow()}};
+$('#bulkGo').onclick=()=>{const L=$('#bulk').value.split(/\r?\n/).map(l=>l.split('\t').map(x=>x.trim())).filter(c=>c.some(Boolean));if(!L.length){$('#bulkMsg').textContent='붙여넣은 내용이 없음';return}dropEmptyRows();let n=0,bad=0;L.forEach(c=>{const [nm,id,dp,em,pn,pw]=c;if(!id){bad++;return}addRow(nm||'',id,pw||genPw(),dp||'',em||'',pn||'');n++});$('#bulk').value='';$('#bulkMsg').textContent=`${n}명 추가`+(bad?` · 아이디 없는 줄 ${bad}개 제외`:'')};
+function parseCsv(t){const R=[];let row=[],cur='',q=false;t=t.replace(/^﻿/,'');for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}else if(c==='"')q=true;else if(c===','){row.push(cur);cur=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cur);R.push(row);row=[];cur=''}else cur+=c}if(cur||row.length){row.push(cur);R.push(row)}return R}
+$('#csvIn').onclick=()=>$('#csvFile').click();
+$('#csvFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const out=$('#out');
+ try{let R=parseCsv(await f.text()).filter(r=>r.some(x=>x.trim()));if(R.length&&R[0][1]&&R[0][1].trim()==='아이디')R.shift();
+  dropEmptyRows();let n=0;R.forEach(r=>{const [nm,id,pw,dp,em,pn]=r.map(x=>(x||'').trim());if(!id)return;addRow(nm,id,pw,dp,em,pn);n++});
+  out.className='msg good';out.textContent=`계정목록에서 ${n}명 불러옴`}catch(err){out.className='msg bad';out.textContent='CSV를 읽지 못함: '+(err.message||err)}e.target.value=''};
+$('#src').onchange=async e=>{const f=e.target.files[0];if(!f)return;srcHtml=await f.text();srcName=f.name.replace(/\.html?$/i,'');
+ const locked=/const P=\{"v":\d/.test(srcHtml)&&/crypto\.subtle\.decrypt/.test(srcHtml);
+ $('#srcInfo').textContent=`${f.name} · ${(f.size/1024).toFixed(0)}KB`+(locked?' · 주의: 이미 암호화된 파일로 보임. 암호화 전 원본을 선택할 것':'');$('#srcInfo').style.color=locked?'var(--bad)':''};
+async function idHash(id,salt){const s=enc.encode(id.trim().toLowerCase()),u=new Uint8Array(salt.length+s.length);u.set(salt);u.set(s,salt.length);return b64(new Uint8Array(await crypto.subtle.digest('SHA-256',u)))}
+async function kek(pw,salt,use){const base=await crypto.subtle.importKey('raw',enc.encode(pw.normalize('NFC')),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:ITER,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,[use])}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+
+$('#gen').onclick=async()=>{const out=$('#out');out.className='msg';out.textContent='';
+ try{
+  if(!srcHtml)throw new Error('1단계에서 원본 HTML을 선택할 것');
+  if(!window.crypto||!crypto.subtle)throw new Error('이 브라우저(또는 주소)는 암호화를 지원하지 않음. https 주소 또는 Chrome·Edge에서 열 것');
+  const rows=[...document.querySelectorAll('#acc tr')].map(tr=>({nm:tr.querySelector('.nm').value.trim(),id:tr.querySelector('.id').value.trim(),pw:tr.querySelector('.pw').value,dp:tr.querySelector('.dp').value.trim(),em:tr.querySelector('.em').value.trim(),pn:tr.querySelector('.pn').value.trim()})).filter(r=>r.id||r.pw);const co=$('#co').value.trim();
+  if(!rows.length)throw new Error('계정을 1개 이상 입력할 것');
+  const seen=new Set();
+  for(const r of rows){if(!r.id||!r.pw)throw new Error('아이디와 비밀번호를 모두 입력할 것');const k=r.id.toLowerCase();if(seen.has(k))throw new Error(`아이디 중복: ${r.id}`);seen.add(k);if(r.pw.length<12)throw new Error(`비밀번호가 너무 짧음(12자 미만): ${r.id}`);if(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(r.pw))throw new Error(`비밀번호에 한글 사용 불가: ${r.id}`);if(r.pw.trim()!==r.pw)throw new Error(`비밀번호 앞뒤에 공백이 있음: ${r.id}`)}
+  $('#gen').disabled=true;out.textContent=`암호화 중… (계정 ${rows.length}개)`;
+  const wmOf=r=>[co,r.dp,r.em,r.pn].filter(Boolean).join(' / ');
+  const cekRaw=rnd(32),cek=await crypto.subtle.importKey('raw',cekRaw,'AES-GCM',false,['encrypt']),iv=rnd(12),ids=rnd(16);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},cek,enc.encode(srcHtml)));
+  const acc=[];
+  for(const r of rows){const s=rnd(16),i=rnd(12),k=await kek(r.pw,s,'encrypt');const w=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:i},k,enc.encode(JSON.stringify({k:b64(cekRaw),w:wmOf(r)}))));acc.push({h:await idHash(r.id,ids),s:b64(s),i:b64(i),k:b64(w)})}
+  acc.sort((a,b)=>a.h<b.h?-1:1);
+  const title=$('#title').value.trim()||'보안 문서';
+  const text=JSON.stringify({v:3,it:ITER,title,ids:b64(ids),iv:b64(iv),ct:b64(ct),acc});
+  out.textContent=`계정별 복호화 검증 중… (계정 ${rows.length}개)`;
+  // 저장될 문자열을 다시 읽어, 계정마다 로그인 화면과 같은 절차로 복호화되는지 확인
+  const Q=JSON.parse(text);let okN=0;
+  for(const r of rows){const h=await idHash(r.id,d64(Q.ids)),e=Q.acc.find(x=>x.h===h);if(!e)throw new Error('검증 실패(아이디): '+r.id);
+   const k=await kek(r.pw,d64(e.s),'decrypt'),o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:d64(e.i)},k,d64(e.k))));
+   const ck=await crypto.subtle.importKey('raw',d64(o.k),'AES-GCM',false,['decrypt']),pt=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:d64(Q.iv)},ck,d64(Q.ct)));if(pt!==srcHtml)throw new Error('검증 실패(본문 불일치): '+r.id);okN++}
+  lastPayload=text;lastList=rows.map(r=>({...r,wm:wmOf(r)}));
+  download(DATA_NAME,text,'application/json');
+  $('#distTxt').value=lastList.map(r=>`${r.nm||'-'}\t아이디: ${r.id}\t비밀번호: ${r.pw}\t워터마크: ${r.wm}`).join('\n');$('#dist').style.display='block';
+  $('#pub').disabled=false;$('#pubMsg').textContent='';
+  out.className='msg good';out.textContent=`생성 완료: ${DATA_NAME} (원본 ${srcName} · 계정 ${rows.length}개 · 계정별 복호화 검증 ${okN}/${rows.length} 통과). 4단계에서 게시`;
+ }catch(e){out.className='msg bad';out.textContent=e.message||String(e)}finally{$('#gen').disabled=false}};
+$('#copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#distTxt').value);$('#copy').textContent='복사됨'}catch(e){$('#distTxt').select()}};
+$('#csv').onclick=()=>{const csv='﻿받는 사람,아이디,비밀번호,부서,사번,성명,워터마크\n'+lastList.map(r=>[r.nm,r.id,r.pw,r.dp,r.em,r.pn,r.wm].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');download('계정목록.csv',csv,'text/csv')};
+
+// GitHub 바로 게시: data/report.enc.json 한 파일만 커밋함
+$('#pub').onclick=async()=>{const m=$('#pubMsg'),o=$('#ghOwner').value.trim(),r=$('#ghRepo').value.trim(),br=$('#ghBranch').value.trim()||'main',tok=$('#ghTok').value.trim();m.className='msg';
+ try{if(!lastPayload)throw new Error('3단계에서 암호화 데이터를 먼저 생성할 것');if(!o||!r||!tok)throw new Error('소유자·저장소·토큰을 모두 입력할 것');
+  $('#pub').disabled=true;m.textContent='게시 중…';
+  const base=`https://api.github.com/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/contents/${DATA_DIR}`,H={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  const fail=async(res,what)=>{let t='';try{t=(await res.json()).message||''}catch(e){}throw new Error(`${what} 실패 (${res.status}${t?' · '+t:''})`+(res.status===401?' — 토큰 확인':res.status===403||res.status===404?' — 저장소 이름·브랜치·토큰 권한(Contents 쓰기) 확인':''))};
+  // 기존 파일이 있으면 그 sha가 있어야 덮어쓸 수 있음(폴더 목록에서 조회)
+  let sha;const lr=await fetch(`${base}?ref=${encodeURIComponent(br)}`,{headers:H,cache:'no-store'});
+  if(lr.ok){const L=await lr.json();const f=Array.isArray(L)&&L.find(x=>x.name===DATA_NAME);if(f)sha=f.sha}else if(lr.status!==404)await fail(lr,'저장소 조회');
+  const body={message:'보안 문서 갱신',content:b64(enc.encode(lastPayload)),branch:br};if(sha)body.sha=sha;
+  const pr=await fetch(`${base}/${DATA_NAME}`,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!pr.ok)await fail(pr,'게시');
+  const j=await pr.json();m.className='msg good';m.textContent=`게시 완료${sha?'(기존 파일 교체)':'(신규)'}${j.commit&&j.commit.sha?' · 커밋 '+j.commit.sha.slice(0,7):''}. 사이트 반영까지 1~2분 걸릴 수 있음. 반영 후 로그인 화면에서 계정으로 열리는지 확인할 것`;
+  $('#ghTok').value='';
+ }catch(e){m.className='msg bad';m.textContent=e.message||String(e)}finally{$('#pub').disabled=!lastPayload}};
+</script>
+</body>
+</html>
