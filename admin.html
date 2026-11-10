@@ -49,30 +49,29 @@ details summary{cursor:pointer;font-size:13px;font-weight:600}
 </div>
 
 <div class="card">
- <h2><span class="n">3</span>암호화 데이터 만들기</h2>
- <p class="d">버튼을 누르면 <b>report.enc.json</b>이 내려받아짐. 이 파일이 로그인 화면(index.html)이 읽는 암호화 데이터임</p>
- <button class="p" id="gen">암호화 데이터 생성</button>
+ <h2><span class="n">3</span>게시 설정</h2>
+ <p class="d">한 번 입력해 두면 4단계 버튼 하나로 암호화부터 게시까지 자동 진행됨. 토큰이 없으면 암호화 데이터만 내려받아짐(수동 게시)</p>
+ <div class="g3">
+  <div><label class="d">소유자 (계정 또는 조직)</label><input type="text" id="ghOwner" placeholder="예: my-account"></div>
+  <div><label class="d">저장소 이름</label><input type="text" id="ghRepo" placeholder="예: report"></div>
+  <div><label class="d">브랜치</label><input type="text" id="ghBranch" value="main"></div>
+ </div>
+ <div style="margin-top:10px"><label class="d">액세스 토큰 — 해당 저장소 하나에 Contents 읽기/쓰기만 허용한 fine-grained 토큰. api.github.com으로만 전송됨</label><input type="password" id="ghTok" autocomplete="off" placeholder="github_pat_…"></div>
+ <label class="d" style="margin-top:8px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ghKeep">이 브라우저에 토큰 기억 (본인 전용 PC에서만 사용. 해제하면 즉시 삭제됨)</label>
+</div>
+
+<div class="card">
+ <h2><span class="n">4</span>암호화 및 게시</h2>
+ <p class="d">원본을 암호화하고, 계정별 복호화를 검증한 뒤, 저장소의 <b>data/report.enc.json</b>을 교체함. 게시하면 계정 목록이 통째로 바뀌므로 유지할 계정도 2단계 표에 함께 있어야 함</p>
+ <button class="p" id="gen">암호화 후 게시</button>
  <div id="out" class="msg"></div>
+ <div id="pubMsg" class="msg"></div>
+ <div class="row" id="after" style="display:none;margin-top:10px"><button id="pub">게시 다시 시도</button><button id="dl">report.enc.json 내려받기 (수동 게시용)</button></div>
  <div id="dist" style="display:none;margin-top:14px">
   <p class="d" style="margin-bottom:6px"><b>배포용 계정 목록</b> — 접속 주소와 비밀번호는 다른 경로로 전달 (예: 주소는 메일, 비밀번호는 메신저). 계정목록 CSV는 저장소에 올리지 말 것</p>
   <textarea id="distTxt" readonly></textarea>
   <div class="row" style="margin-top:8px"><button id="copy">복사</button><button id="csv">계정목록 CSV 내려받기</button></div>
  </div>
-</div>
-
-<div class="card">
- <h2><span class="n">4</span>게시</h2>
- <p class="d">방법 A: 내려받은 report.enc.json을 저장소의 <b>data/</b> 폴더에 올림(기존 파일 덮어쓰기). 방법 B: 아래에서 GitHub에 바로 게시</p>
- <details id="ghBox"><summary>GitHub에 바로 게시 (방법 B)</summary>
-  <div class="g3" style="margin-top:10px">
-   <div><label class="d">소유자 (계정 또는 조직)</label><input type="text" id="ghOwner" placeholder="예: my-account"></div>
-   <div><label class="d">저장소 이름</label><input type="text" id="ghRepo" placeholder="예: report"></div>
-   <div><label class="d">브랜치</label><input type="text" id="ghBranch" value="main"></div>
-  </div>
-  <div style="margin-top:10px"><label class="d">액세스 토큰 — 해당 저장소 하나에 Contents 읽기/쓰기만 허용한 fine-grained 토큰. 저장되지 않으며 api.github.com으로만 전송됨</label><input type="password" id="ghTok" autocomplete="off" placeholder="github_pat_…"></div>
-  <div class="row" style="margin-top:10px"><button class="p" id="pub" disabled>GitHub에 게시</button><span class="d" style="margin:0">3단계 생성 후 활성화됨</span></div>
-  <div id="pubMsg" class="msg"></div>
- </details>
 </div>
 
 <div class="warn">
@@ -145,17 +144,25 @@ $('#gen').onclick=async()=>{const out=$('#out');out.className='msg';out.textCont
    const k=await kek(r.pw,d64(e.s),'decrypt'),o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:d64(e.i)},k,d64(e.k))));
    const ck=await crypto.subtle.importKey('raw',d64(o.k),'AES-GCM',false,['decrypt']),pt=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:d64(Q.iv)},ck,d64(Q.ct)));if(pt!==srcHtml)throw new Error('검증 실패(본문 불일치): '+r.id);okN++}
   lastPayload=text;lastList=rows.map(r=>({...r,wm:wmOf(r)}));
-  download(DATA_NAME,text,'application/json');
   $('#distTxt').value=lastList.map(r=>`${r.nm||'-'}\t아이디: ${r.id}\t비밀번호: ${r.pw}\t워터마크: ${r.wm}`).join('\n');$('#dist').style.display='block';
-  $('#pub').disabled=false;$('#pubMsg').textContent='';
-  out.className='msg good';out.textContent=`생성 완료: ${DATA_NAME} (원본 ${srcName} · 계정 ${rows.length}개 · 계정별 복호화 검증 ${okN}/${rows.length} 통과). 4단계에서 게시`;
+  $('#after').style.display='flex';$('#pubMsg').textContent='';
+  out.className='msg good';out.textContent=`암호화 완료 (원본 ${srcName} · 계정 ${rows.length}개 · 계정별 복호화 검증 ${okN}/${rows.length} 통과)`;
+  if(ghReady())await publish();
+  else{download(DATA_NAME,text,'application/json');const m=$('#pubMsg');m.className='msg bad';m.textContent='게시 설정(소유자·저장소·토큰)이 비어 있어 자동 게시하지 않음. 3단계를 입력하고 [게시 다시 시도]를 누르거나, 내려받은 report.enc.json을 저장소 data/ 폴더에 직접 올릴 것'}
  }catch(e){out.className='msg bad';out.textContent=e.message||String(e)}finally{$('#gen').disabled=false}};
+$('#dl').onclick=()=>{if(lastPayload)download(DATA_NAME,lastPayload,'application/json')};
 $('#copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#distTxt').value);$('#copy').textContent='복사됨'}catch(e){$('#distTxt').select()}};
 $('#csv').onclick=()=>{const csv='﻿받는 사람,아이디,비밀번호,부서,사번,성명,워터마크\n'+lastList.map(r=>[r.nm,r.id,r.pw,r.dp,r.em,r.pn,r.wm].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');download('계정목록.csv',csv,'text/csv')};
 
 // GitHub 바로 게시: data/report.enc.json 한 파일만 커밋함
-$('#pub').onclick=async()=>{const m=$('#pubMsg'),o=$('#ghOwner').value.trim(),r=$('#ghRepo').value.trim(),br=$('#ghBranch').value.trim()||'main',tok=$('#ghTok').value.trim();m.className='msg';
- try{if(!lastPayload)throw new Error('3단계에서 암호화 데이터를 먼저 생성할 것');if(!o||!r||!tok)throw new Error('소유자·저장소·토큰을 모두 입력할 것');
+const ghReady=()=>!!($('#ghOwner').value.trim()&&$('#ghRepo').value.trim()&&$('#ghTok').value.trim());
+(()=>{const t=ls.get('tok');if(t){$('#ghTok').value=t;$('#ghKeep').checked=true}const sync=()=>ls.set('tok',$('#ghKeep').checked?$('#ghTok').value.trim():'');$('#ghKeep').addEventListener('change',sync);$('#ghTok').addEventListener('change',sync)})();
+// 게시 후 실제 사이트에 새 데이터가 반영됐는지 확인(같은 사이트에서 열었을 때만 의미 있음)
+async function waitLive(m,head){const iv=JSON.parse(lastPayload).iv;for(let i=0;i<18;i++){m.textContent=`${head} 사이트 반영 확인 중… (${i*10}초 경과)`;await new Promise(r=>setTimeout(r,i?10000:3000));
+  try{const r=await fetch(`${DATA_DIR}/${DATA_NAME}?t=${Date.now()}`,{cache:'no-store'});if(r.ok&&(await r.json()).iv===iv)return true}catch(e){}}return false}
+$('#pub').onclick=()=>publish();
+async function publish(){const m=$('#pubMsg'),o=$('#ghOwner').value.trim(),r=$('#ghRepo').value.trim(),br=$('#ghBranch').value.trim()||'main',tok=$('#ghTok').value.trim();m.className='msg';
+ try{if(!lastPayload)throw new Error('먼저 [암호화 후 게시]로 암호화 데이터를 생성할 것');if(!o||!r||!tok)throw new Error('3단계의 소유자·저장소·토큰을 모두 입력할 것');
   $('#pub').disabled=true;m.textContent='게시 중…';
   const base=`https://api.github.com/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}/contents/${DATA_DIR}`,H={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
   const fail=async(res,what)=>{let t='';try{t=(await res.json()).message||''}catch(e){}throw new Error(`${what} 실패 (${res.status}${t?' · '+t:''})`+(res.status===401?' — 토큰 확인':res.status===403||res.status===404?' — 저장소 이름·브랜치·토큰 권한(Contents 쓰기) 확인':''))};
@@ -165,9 +172,10 @@ $('#pub').onclick=async()=>{const m=$('#pubMsg'),o=$('#ghOwner').value.trim(),r=
   const body={message:'보안 문서 갱신',content:b64(enc.encode(lastPayload)),branch:br};if(sha)body.sha=sha;
   const pr=await fetch(`${base}/${DATA_NAME}`,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!pr.ok)await fail(pr,'게시');
-  const j=await pr.json();m.className='msg good';m.textContent=`게시 완료${sha?'(기존 파일 교체)':'(신규)'}${j.commit&&j.commit.sha?' · 커밋 '+j.commit.sha.slice(0,7):''}. 사이트 반영까지 1~2분 걸릴 수 있음. 반영 후 로그인 화면에서 계정으로 열리는지 확인할 것`;
-  $('#ghTok').value='';
- }catch(e){m.className='msg bad';m.textContent=e.message||String(e)}finally{$('#pub').disabled=!lastPayload}};
+  const j=await pr.json(),head=`저장소 게시 완료${sha?'(기존 파일 교체)':'(신규)'}${j.commit&&j.commit.sha?' · 커밋 '+j.commit.sha.slice(0,7):''}.`;
+  const live=await waitLive(m,head);m.className=live?'msg good':'msg';
+  m.textContent=live?`${head} 사이트 반영 확인됨. 로그인 화면에서 새 계정으로 열 수 있음`:`${head} 3분 내 사이트 반영은 확인하지 못함(이 도구를 게시 사이트가 아닌 곳에서 열었거나 반영 지연). 잠시 후 로그인 화면에서 직접 확인할 것`;
+ }catch(e){m.className='msg bad';m.textContent=e.message||String(e)}finally{$('#pub').disabled=false}}
 </script>
 </body>
 </html>
