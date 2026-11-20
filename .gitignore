@@ -1,5 +1,17 @@
-# 저장소에 올리면 안 되는 파일
-계정목록*.csv
+# 공개 저장소에 올리면 안 되는 것 (원본 데이터·평문 보고서·계정)
+# 실제 차단은 tools/check-site.mjs 허용 목록이 담당하고, 이 파일은 1차 방어선
+build/
+input/
+*.xlsx
+*.xlsm
+*.xls
 *.csv
+계정목록*
 원본/
 *_원본.html
+*_분석.html
+*_경영실적양식.html
+data.json
+acct.json
+data/*.json
+!data/report.enc.json
