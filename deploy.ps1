@@ -1,11 +1,10 @@
 ﻿# Git으로 보안 보고서 게시
 # 사용 예:
-#   .\deploy.ps1 -EncFile "$HOME\Downloads\report.enc.json"   # admin.html에서 내려받은 파일로 교체 후 게시
-#   .\deploy.ps1                                              # 작업 폴더 변경분(문구·화면 수정 등)·밀린 커밋 게시
-#   .\deploy.ps1 -DryRun [-EncFile ...]                       # 점검만. 파일·브랜치·스테이징을 바꾸지 않음
+#   (먼저 build 폴더에서 node tools/site.mjs …로 data/ 갱신 — 판 추가·계정 변경·비밀번호 변경 코드 반영)
+#   .\deploy.ps1 [-Message "…"]                               # 작업 폴더 변경분·밀린 커밋 게시
+#   .\deploy.ps1 -DryRun                                      # 점검만. 파일·브랜치·스테이징을 바꾸지 않음
 #   -SiteUrl https://<소유자>.github.io/<저장소>/             # 사용자 지정 도메인 등 Pages 주소를 직접 지정
 param(
-  [string]$EncFile,
   [string]$Message,
   [string]$Branch = 'main',
   [string]$SiteUrl,
@@ -14,10 +13,6 @@ param(
 )
 # PowerShell 5.1은 EAP=Stop에서 git의 stderr 진행 메시지를 오류로 취급하므로 Continue로 두고 종료 코드로 판단
 $ErrorActionPreference = 'Continue'
-if ($EncFile) {  # 상대 경로는 실행한 위치 기준으로 먼저 확정
-  $p = Resolve-Path -LiteralPath $EncFile -ErrorAction SilentlyContinue
-  if (-not $p) { throw "파일 없음: $EncFile" }; $EncFile = $p.ProviderPath
-}
 Set-Location -LiteralPath $PSScriptRoot
 function Run-Git { & git @args; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') 실패 (코드 $LASTEXITCODE)" } }
 $node = (Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
@@ -35,12 +30,12 @@ if (& git ls-files -u) { throw '충돌 해결이 안 된 파일이 있음. 먼�
 
 if ($DryRun) {
   Write-Host '[DryRun] 작업 폴더 점검 (원격 받기·파일 교체·스테이징 없음)'
-  if ($EncFile) { Check --enc $EncFile } else { Check }
+  Check
   & git status -sb; return
 }
 Run-Git config core.hooksPath .githooks
 
-# 1) 원격 최신화 — admin.html의 "GitHub 바로 게시"가 원격에 직접 커밋하므로 먼저 받아야 충돌이 안 남
+# 1) 원격 최신화 — 다른 PC나 웹에서 올린 커밋을 먼저 받아야 충돌이 안 남
 Write-Host "[1/5] 원격($remote) 최신 내용 받는 중…"
 & git ls-remote --exit-code --heads origin $Branch | Out-Null
 $lr = $LASTEXITCODE
@@ -54,12 +49,12 @@ if ($lr -eq 0) {
 } elseif ($lr -eq 2) { Write-Host '      원격 브랜치 없음(최초 게시)'; $base = $null }
 else { throw "원격 조회 실패 (코드 $lr) — 네트워크·로그인 확인" }
 
-# 2) 암호화 데이터 교체
-if ($EncFile) {
-  New-Item -ItemType Directory -Force data | Out-Null
-  Copy-Item -LiteralPath $EncFile -Destination data/report.enc.json -Force -ErrorAction Stop
-  Write-Host "[2/5] data/report.enc.json 교체: $EncFile"
-} else { Write-Host '[2/5] 암호화 데이터 교체 없음' }
+# 관리 도구(site.mjs)가 data/를 바꾸는 중이면 반쪽 상태가 커밋되지 않게 같은 잠금을 잡음
+$lockPath = Join-Path $PSScriptRoot '..uild\secrets\.lock'; $lock = $null
+if (Test-Path -LiteralPath (Split-Path $lockPath)) { try { $lock = [IO.File]::Open($lockPath, 'CreateNew', 'Write', 'None') } catch { throw '관리 도구가 실행 중(build\secrets\.lock) — 끝난 뒤 다시 실행' } }
+try {
+Write-Host '[2/5] 변경 내역'
+& git status -s
 
 # 3) 점검 후 변경분 커밋 (원본·엑셀·CSV 차단, 암호화 형식 확인). 커밋 시 훅이 인덱스를 한 번 더 점검
 Write-Host '[3/5] 게시 점검'
@@ -71,6 +66,7 @@ if ($LASTEXITCODE -ne 0) {
   if (-not $Message) { $Message = '보안 문서 갱신 ' + (Get-Date -Format 'yyyy-MM-dd HH:mm') }
   Run-Git commit -q -m $Message
 } else { Write-Host '      새 변경 없음' }
+} finally { if ($lock) { $lock.Close(); Remove-Item -LiteralPath $lockPath -ErrorAction SilentlyContinue } }
 
 # 4) 푸시할 커밋 전부 점검 후 푸시 (중간 커밋에 들어갔다 지워진 파일도 공개 이력에 남기 때문)
 # 점검한 커밋과 푸시하는 커밋이 같도록 OID를 한 번만 읽어 고정. 원격이 그 사이 바뀌면 --force-with-lease 없이도 비-fast-forward로 거부됨
@@ -86,7 +82,7 @@ else {
   Write-Host ('      커밋 ' + $tip.Substring(0, 7))
 }
 
-# 5) 사이트 반영 확인: data iv(대소문자 구분)와 index.html·admin.html 내용이 HEAD와 같아질 때까지
+# 5) 사이트 반영 확인: 공개 데이터·로그인 화면이 푸시한 커밋과 같아질 때까지
 if ($NoWait) { return }
 if (-not $SiteUrl -and $remote -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?$') {
   $o = $Matches[1]; $r = $Matches[2]
@@ -95,7 +91,7 @@ if (-not $SiteUrl -and $remote -match 'github\.com[:/]([^/]+)/([^/]+?)(\.git)?/?
 if (-not $SiteUrl) { Write-Host '[5/5] Pages 주소를 알 수 없어 반영 확인 생략 (-SiteUrl로 지정 가능)'; return }
 if (-not $SiteUrl.EndsWith('/')) { $SiteUrl += '/' }
 # 게시본을 바이트 그대로 받아 Git 객체 해시로 비교 (한글 인코딩·대소문자 문제 없음)
-$files = 'data/report.enc.json', 'index.html', 'admin.html'
+$files = @('index.html', 'data/keys.json', 'data/catalog.json') + @(& git ls-tree -r --name-only $tip -- data/r | Where-Object { $_ })
 $want = @{}; foreach ($f in $files) { $want[$f] = (& git rev-parse "$($tip):$f") }
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('deploy-check-' + [guid]::NewGuid().ToString('N'))
 Write-Host "[5/5] 사이트 반영 확인: $SiteUrl"

@@ -13,5 +13,5 @@ input/
 *_경영실적양식.html
 data.json
 acct.json
-data/*.json
-!data/report.enc.json
+secrets/
+admin.json

@@ -1,0 +1,10 @@
+#!/bin/sh
+# 직접 git push 해도 푸시되는 커밋마다 게시 점검 (deploy.ps1을 거치지 않는 경로 차단)
+# 새 대상 브랜치는 전체 이력을 점검(예전 형식 커밋이 있으면 차단 — README 참고)
+z=0000000000000000000000000000000000000000
+while read lref lsha rref rsha; do
+  [ "$lsha" = "$z" ] && continue
+  if [ "$rsha" = "$z" ]; then range="$lsha"; else range="$rsha..$lsha"; fi
+  node tools/check-site.mjs --commits "$range" || exit 1
+done
+exit 0

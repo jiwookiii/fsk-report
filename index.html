@@ -7,15 +7,28 @@
 <meta name="referrer" content="no-referrer">
 <title>보안 문서 · 로그인</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f5f8;font:14px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#1f2329}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:#f3f5f8;font:14px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#1f2329}
+#login{min-height:100vh;display:grid;place-items:center}
 .box{width:min(400px,92vw);background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:30px 28px;box-shadow:0 8px 30px rgba(14,48,109,.08)}
 .brand{font-size:12px;font-weight:700;color:#0E306D;letter-spacing:.5px;border-left:3px solid #F47725;padding-left:8px}h1{font-size:18px;margin:12px 0 4px;line-height:1.4}.sub{color:#5c646e;font-size:12.5px;margin:0 0 18px}
 label{display:block;font-size:12px;color:#5c646e;margin-bottom:12px}input{display:block;width:100%;margin-top:4px;font:inherit;padding:10px 12px;border:1px solid #cfd4db;border-radius:7px}input:focus{outline:2px solid #0072C6;border-color:transparent}
-button{width:100%;font:inherit;font-weight:700;padding:11px;border:0;border-radius:7px;background:#0E306D;color:#fff;cursor:pointer;margin-top:4px}button:disabled{opacity:.6;cursor:wait}
-.err{color:#EA002C;font-size:12.5px;min-height:18px;margin:10px 0 0}.foot{font-size:11px;color:#8a919b;margin:16px 0 0;text-align:center}
+.bp{width:100%;font:inherit;font-weight:700;padding:11px;border:0;border-radius:7px;background:#0E306D;color:#fff;cursor:pointer;margin-top:4px}.bp:disabled{opacity:.6;cursor:wait}
+.err{color:#EA002C;font-size:12.5px;min-height:18px;margin:10px 0 0}.ok{color:#0072C6}.foot{font-size:11px;color:#8a919b;margin:16px 0 0;text-align:center}
+#viewer{position:fixed;inset:0}#rv{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+#vb{position:fixed;right:12px;bottom:12px;z-index:2147483646;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #d5dae1;border-radius:9px;padding:6px 8px;box-shadow:0 6px 20px rgba(14,48,109,.16);font-size:12px;max-width:calc(100vw - 24px);flex-wrap:wrap}
+#vb select{font:inherit;padding:4px 6px;border:1px solid #cfd4db;border-radius:6px;max-width:min(320px,60vw)}
+#vb button{font:inherit;padding:4px 9px;border:1px solid #cfd4db;border-radius:6px;background:#fff;cursor:pointer;color:#1f2329}#vb button:hover{border-color:#0E306D}
+#vb .who{color:#5c646e;padding:0 2px}#vb.min>*:not(#vmin){display:none}
+#vsum{flex-basis:100%;color:#5c646e;font-size:11.5px;padding:0 2px;max-width:560px}#vsum:empty{display:none}
+dialog{border:1px solid #e3e6ea;border-radius:12px;padding:24px 24px 18px;width:min(440px,94vw);box-shadow:0 12px 40px rgba(14,48,109,.2)}dialog::backdrop{background:rgba(20,30,50,.35)}
+dialog h2{font-size:16px;margin:0 0 4px}dialog .row{display:flex;gap:8px;margin-top:8px}dialog .row button{flex:1}
+.bs{font:inherit;padding:9px;border:1px solid #cfd4db;border-radius:7px;background:#fff;cursor:pointer}
+textarea{width:100%;height:110px;font:11.5px/1.45 Consolas,monospace;padding:8px;border:1px solid #cfd4db;border-radius:7px;word-break:break-all;resize:vertical}
+.note{font-size:12px;color:#4b3a2a;background:#fff8f2;border-left:3px solid #F47725;padding:8px 10px;border-radius:4px;margin:10px 0}
 </style>
 </head>
 <body>
+<div id="login">
 <div class="box">
  <div class="brand">암호화 문서</div>
  <h1 id="tt">보안 문서</h1>
@@ -24,55 +37,137 @@ button{width:100%;font:inherit;font-weight:700;padding:11px;border:0;border-radi
   <label>아이디<input id="lu" autocomplete="username" required></label>
   <label>비밀번호<input id="lp" type="password" autocomplete="current-password" required></label>
   <p id="lc" class="err" style="min-height:0;margin:-6px 0 8px"></p>
-  <button id="lb" type="submit">로그인</button>
+  <button class="bp" id="lb" type="submit">로그인</button>
   <p id="lm" class="err"></p>
  </form>
  <p class="foot">암호화된 문서 · 무단 배포 금지</p>
 </div>
+</div>
+<div id="viewer" hidden><iframe id="rv" title="보고서" sandbox="allow-scripts allow-modals allow-downloads"></iframe></div>
+<div id="vb" hidden>
+ <span class="who" id="vwho"></span>
+ <select id="vs" aria-label="보고서 판 선택"></select>
+ <button id="vp" type="button">인쇄</button>
+ <button id="vc" type="button">비밀번호 변경</button>
+ <button id="vo" type="button">로그아웃</button>
+ <button id="vmin" type="button" title="접기/펼치기">–</button>
+ <div id="vsum"></div>
+</div>
+<dialog id="pwd">
+ <form id="pf" method="dialog">
+  <h2>비밀번호 변경</h2>
+  <p class="sub" style="margin-bottom:12px">새 비밀번호는 12자 이상, 한글 불가</p>
+  <label>현재 비밀번호<input id="p0" type="password" autocomplete="current-password" required></label>
+  <label>새 비밀번호<input id="p1" type="password" autocomplete="new-password" required minlength="12"></label>
+  <label>새 비밀번호 확인<input id="p2" type="password" autocomplete="new-password" required minlength="12"></label>
+  <p id="pm" class="err"></p>
+  <div class="row"><button class="bs" type="button" id="pcancel">취소</button><button class="bp" id="pgo" type="submit" style="margin:0">변경 코드 만들기</button></div>
+ </form>
+ <div id="pout" hidden>
+  <h2>변경 코드</h2>
+  <div class="note">아래 코드를 <b>관리자에게 메신저로 전달</b>. 관리자가 반영하기 전까지는 <b>기존 비밀번호</b>로 로그인하고, 반영 후에는 새 비밀번호로만 열림. 코드에는 비밀번호가 들어 있지 않음</div>
+  <textarea id="pcode" readonly></textarea>
+  <div class="row"><button class="bs" type="button" id="pcopy">코드 복사</button><button class="bp" type="button" id="pdone" style="margin:0">닫기</button></div>
+ </div>
+</dialog>
 <script>
-// 암호화 데이터 위치. 계정 발급 도구(admin.html)가 만든 파일을 이 경로에 올리면 됨
-const DATA='data/report.enc.json';
-let P=null;
-const d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),en=new TextEncoder(),g=i=>document.getElementById(i);
-const hb=u=>{let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)};
+// 데이터: data/keys.json(계정별 잠긴 개인키) · data/catalog.json(판 목록, 계정별 잠긴 판 열쇠) · data/r/<판>.enc.json(본문)
+// 관리 도구: build/tools/site.mjs (비공개). 형식이 바뀌면 두 파일을 함께 고칠 것
+'use strict';
+const S=crypto.subtle,te=new TextEncoder(),td=new TextDecoder(),g=i=>document.getElementById(i),EC={name:'ECDH',namedCurve:'P-256'};
+const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const J=async u=>{const r=await fetch(u+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status===404?'nf':'http');return r.json()};
+let K=null,C=null,ME=null,CUR=null;
+async function kek(pw,salt,use){const base=await S.importKey('raw',te.encode(pw.normalize('NFC')),'PBKDF2',false,['deriveKey']);return S.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,[use])}
+async function gDec(key,o){return new Uint8Array(await S.decrypt({name:'AES-GCM',iv:ub(o.iv)},key,ub(o.ct)))}
+async function gEnc(key,bytes){const iv=rnd(12);return {iv:b64(iv),ct:b64(new Uint8Array(await S.encrypt({name:'AES-GCM',iv},key,bytes)))}}
+const impPub=s=>S.importKey('raw',ub(s),EC,false,[]);
+async function hk(priv,pub,salt,info,alg,use){const bits=await S.deriveBits({name:'ECDH',public:pub},priv,256);const h=await S.importKey('raw',bits,'HKDF',false,['deriveKey']);return S.deriveKey({name:'HKDF',hash:'SHA-256',salt:te.encode(salt),info:te.encode(info)},h,alg,false,use)}
+const wrapKey=(priv,pub,vid,h)=>hk(priv,pub,vid,'fsk-v4:'+h,{name:'AES-GCM',length:256},['decrypt']);
+const macKey=(priv,pub)=>hk(priv,pub,'','fsk-v4-change',{name:'HMAC',hash:'SHA-256',length:256},['sign']);
+async function idHash(id){const salt=ub(K.ids),s=te.encode(id.trim().toLowerCase()),u=new Uint8Array(salt.length+s.length);u.set(salt);u.set(s,salt.length);return b64(new Uint8Array(await S.digest('SHA-256',u)))}
+async function unlock(u,pw){const raw=await gDec(await kek(pw,ub(u.s),'decrypt'),{iv:u.i,ct:u.k});return S.importKey('jwk',JSON.parse(td.decode(raw)).d,EC,false,['deriveBits'])}
+
 (async()=>{const sub=g('sub');
  try{if(location.protocol==='file:')throw new Error('file');
-  const r=await fetch(DATA+'?t='+Date.now(),{cache:'no-store'});
-  if(!r.ok)throw new Error(r.status===404?'nf':'http');
-  P=await r.json();if(!P||!P.ct||!P.iv||!Array.isArray(P.acc))throw new Error('fmt');
-  if(P.title){g('tt').textContent=P.title;document.title=P.title+' · 로그인'}
+  [K,C]=await Promise.all([J('data/keys.json'),J('data/catalog.json')]);
+  if(!K||K.v!==4||!Array.isArray(K.users)||!C||!Array.isArray(C.versions))throw new Error('fmt');
+  if(K.title){g('tt').textContent=K.title;document.title=K.title+' · 로그인'}
   sub.textContent='권한이 있는 계정으로 로그인';g('lf').hidden=false;g('lu').focus();
  }catch(e){const m=e&&e.message;sub.style.color='#EA002C';
-  sub.textContent=m==='file'?'이 페이지는 게시된 주소(https)에서만 열림. 내려받은 파일로는 열 수 없음':m==='nf'?'게시된 문서가 없음. 관리자에게 문의':m==='fmt'?'문서 데이터 형식 오류. 관리자에게 문의':'문서를 불러오지 못함. 잠시 후 새로고침';}
+  sub.textContent=m==='file'?'이 페이지는 게시된 주소(https)에서만 열림':m==='nf'?'게시된 문서가 없음. 관리자에게 문의':m==='fmt'?'문서 데이터 형식 오류. 관리자에게 문의':'문서를 불러오지 못함. 잠시 후 새로고침'}
 })();
 g('lp').addEventListener('keyup',e=>{const c=e.getModifierState&&e.getModifierState('CapsLock');g('lc').textContent=c?'Caps Lock 켜짐':''});
-async function idHash(id){const s=en.encode(id.trim().toLowerCase());let u;
- if(P.v>=3){const salt=d(P.ids);u=new Uint8Array(salt.length+s.length);u.set(salt);u.set(s,salt.length)}else u=en.encode('fsk-login:'+id.trim().toLowerCase());
- return hb(new Uint8Array(await crypto.subtle.digest('SHA-256',u)))}
+
 g('lf').onsubmit=async e=>{e.preventDefault();const b=g('lb'),m=g('lm');m.textContent='';b.disabled=true;b.textContent='확인 중…';
  try{if(!window.crypto||!crypto.subtle)throw new Error('ns');
-  const h=await idHash(g('lu').value),a=P.acc.find(x=>x.h===h);
-  const pv=g('lp').value;if(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(pv))throw new Error('ko');
-  if(!a)throw new Error('auth');
-  const tryPw=async pw=>{const base=await crypto.subtle.importKey('raw',en.encode(pw.normalize('NFC')),'PBKDF2',false,['deriveKey']);
-   const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:d(a.s),iterations:P.it,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
-   return await crypto.subtle.decrypt({name:'AES-GCM',iv:d(a.i)},k,d(a.k))};
-  let raw;try{raw=await tryPw(pv)}catch(_){if(pv.trim()!==pv){try{raw=await tryPw(pv.trim())}catch(__){}}}
-  if(!raw)throw new Error('auth');let kr=raw,wm='';
-  if(P.v>=2){const o=JSON.parse(new TextDecoder().decode(raw));kr=d(o.k);wm=o.w||''}
-  const ck=await crypto.subtle.importKey('raw',kr,'AES-GCM',false,['decrypt']);
-  const html=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:d(P.iv)},ck,d(P.ct)));
-  try{document.open();document.write(html);document.close()}catch(_){const f=document.createElement('iframe');f.setAttribute('style','position:fixed;inset:0;width:100%;height:100%;border:0');f.srcdoc=html;document.body.innerHTML='';document.body.appendChild(f)}
-  if(wm){const ex=function(t){return t.replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
-   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='506' height='345'><text x='253' y='172.5' fill='rgba(60,66,78,0.08625)' font-size='19.55' font-weight='500' font-family='Malgun Gothic,Apple SD Gothic Neo,Noto Sans KR,sans-serif' text-anchor='middle' dominant-baseline='middle' transform='rotate(-45 253 172.5)'>"+ex(wm)+"</text></svg>";
-   const url='url("data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)+'")';
-   const css='position:fixed!important;inset:0!important;pointer-events:none!important;z-index:2147483647!important;background-image:'+url+'!important;background-repeat:repeat!important;display:block!important;opacity:1!important;visibility:visible!important;mix-blend-mode:multiply!important';
-   const add=function(){let el=document.getElementById('__wm');if(!el){el=document.createElement('div');el.id='__wm';el.setAttribute('aria-hidden','true');document.documentElement.appendChild(el)}if(el.getAttribute('style')!==css)el.setAttribute('style',css);
-    if(!document.getElementById('__wms')){const st=document.createElement('style');st.id='__wms';st.textContent='dialog{background-image:'+url+'!important;background-repeat:repeat!important}@media print{#__wm{position:fixed!important;display:block!important}}';(document.head||document.documentElement).appendChild(st)}};
-   add();new MutationObserver(add).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']});}
+  const h=await idHash(g('lu').value),u=K.users.find(x=>x.h===h),pv=g('lp').value;
+  if(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(pv))throw new Error('ko');
+  if(!u)throw new Error('auth');
+  let priv=null;try{priv=await unlock(u,pv)}catch(_){if(pv.trim()!==pv){try{priv=await unlock(u,pv.trim())}catch(__){}}}
+  if(!priv)throw new Error('auth');
+  const vs=[];
+  for(const [ci,v] of C.versions.entries()){const r=v.r&&v.r[h];if(!r)continue;
+   try{const o=JSON.parse(td.decode(await gDec(await wrapKey(priv,await impPub(v.epk),v.vid,h),r)));
+    const ck=await S.importKey('raw',ub(o.k),'AES-GCM',false,['decrypt']),meta=JSON.parse(td.decode(await gDec(ck,v.meta)));vs.push({vid:v.vid,f:v.f,ck,w:o.w||'',meta,ci})}catch(_){}}
+  if(!vs.length)throw new Error('none');
+  vs.sort((a,b)=>b.meta.date.localeCompare(a.meta.date)||b.ci-a.ci);
+  ME={h,u,priv,vs,id:g('lu').value.trim()};g('lp').value='';
+  g('vs').innerHTML=vs.map((v,i)=>`<option value="${i}">${esc(v.meta.month.replace('-','년 ')+'월 · '+v.meta.label+' ('+v.meta.date+')')}${i===0?' · 최신':''}</option>`).join('');
+  g('vwho').textContent=ME.id;
+  g('login').hidden=true;g('viewer').hidden=false;g('vb').hidden=false;
+  await openV(0);
  }catch(err){await new Promise(r=>setTimeout(r,900));const em=err&&err.message;
-  m.textContent=em==='ns'?'이 브라우저에서는 열 수 없음. Chrome 또는 Edge 최신 버전으로 열 것':em==='ko'?'비밀번호에 한글이 입력됨. 한/영 키 확인':em==='auth'?'아이디 또는 비밀번호가 맞지 않음. Caps Lock·한/영 확인':'열기 실패: '+(em||err);
+  m.textContent=em==='ns'?'이 브라우저에서는 열 수 없음. Chrome 또는 Edge 최신 버전으로 열 것':em==='ko'?'비밀번호에 한글이 입력됨. 한/영 키 확인':em==='auth'?'아이디 또는 비밀번호가 맞지 않음. Caps Lock·한/영 확인':em==='none'?'이 계정으로 열 수 있는 문서가 없음. 관리자에게 문의':'열기 실패: '+(em||err);
   b.disabled=false;b.textContent='로그인';g('lp').value='';g('lp').focus()}};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// 판 열기: 본문 복호화 → 격리된 iframe(sandbox, 별도 출처)에 표시. 보고서 스크립트는 로그인 화면·키에 접근 못 함
+// 워터마크·인쇄는 보고서 안에 넣은 작은 스크립트가 처리 + 바깥 덮개 워터마크(이중)
+let CURI=-1;
+async function openV(i){const v=ME.vs[i];g('vs').value=String(i);g('vs').disabled=true;g('vsum').textContent='불러오는 중…';
+ try{const html=td.decode(await gDec(v.ck,await J('data/'+v.f)));
+  g('rv').srcdoc=withWm(html,v.w);CUR=v;CURI=i;
+  wmInto(document,v.w);g('vsum').textContent=v.meta.summary||'';document.title=(v.meta.title||K.title||'보안 문서');
+ }catch(e){g('vs').value=String(CURI);g('vsum').textContent='이 판을 열지 못함: '+(e.message||e)+' — 이전 판을 계속 표시'}finally{g('vs').disabled=false}}
+g('vs').onchange=()=>openV(+g('vs').value);
+const wmSvgUrl=wm=>'url("data:image/svg+xml;charset=utf-8,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='506' height='345'><text x='253' y='172.5' fill='rgba(60,66,78,0.08625)' font-size='19.55' font-weight='500' font-family='Malgun Gothic,Apple SD Gothic Neo,Noto Sans KR,sans-serif' text-anchor='middle' dominant-baseline='middle' transform='rotate(-45 253 172.5)'>"+esc(wm)+"</text></svg>")+'")';
+const wmCss=(url,z)=>'position:fixed!important;inset:0!important;pointer-events:none!important;z-index:'+z+'!important;background-image:'+url+'!important;background-repeat:repeat!important;display:block!important;opacity:1!important;visibility:visible!important;mix-blend-mode:multiply!important';
+// 보고서 HTML 끝에 붙이는 스크립트: 워터마크 유지(지우면 다시 생성), 인쇄 요청 수신, Ctrl+P
+function withWm(html,wm){const url=wmSvgUrl(wm||''),css=wmCss(url,2147483647);
+ const js='(function(){var css='+JSON.stringify(css)+',url='+JSON.stringify(url)+',on='+(wm?'true':'false')+';function add(){if(!on)return;var d=document,el=d.getElementById("__wm");if(!el){el=d.createElement("div");el.id="__wm";el.setAttribute("aria-hidden","true");d.documentElement.appendChild(el)}if(el.getAttribute("style")!==css)el.setAttribute("style",css);if(!d.getElementById("__wms")){var s=d.createElement("style");s.id="__wms";s.textContent="dialog{background-image:"+url+"!important;background-repeat:repeat!important}@media print{#__wm{position:fixed!important;display:block!important}}";(d.head||d.documentElement).appendChild(s)}}add();new MutationObserver(add).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:["style","class","hidden"]});addEventListener("message",function(e){if(e.source===parent&&e.data==="fsk-print")print()});addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="p"){e.preventDefault();print()}})})();';
+ const tag='<script>'+js.replace(/<\//g,'<\\/')+'</'+'script>',at=html.toLowerCase().lastIndexOf('</body>');
+ return at<0?html+tag:html.slice(0,at)+tag+html.slice(at)}
+function wmInto(doc,wm){if(!wm||!doc)return;const url=wmSvgUrl(wm),css=wmCss(url,2147483645);
+ const add=()=>{let el=doc.getElementById('__wm');if(!el){el=doc.createElement('div');el.id='__wm';el.setAttribute('aria-hidden','true');doc.documentElement.appendChild(el)}if(el.getAttribute('style')!==css)el.setAttribute('style',css)};
+ add();if(doc.__wmObs)doc.__wmObs.disconnect();doc.__wmObs=new MutationObserver(add);doc.__wmObs.observe(doc.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']})}
+g('vp').onclick=()=>{if(CURI>=0)g('rv').contentWindow.postMessage('fsk-print','*')};
+document.addEventListener('keydown',e=>{if(ME&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='p'){e.preventDefault();g('vp').click()}});
+g('vo').onclick=()=>{ME=null;location.reload()};
+g('vmin').onclick=()=>{const b=g('vb');b.classList.toggle('min');g('vmin').textContent=b.classList.contains('min')?'문서·계정':'–'};
+
+// 비밀번호 변경: 새 키 쌍을 새 비밀번호로 잠그고, 현재 키로 서명한 변경 코드를 만듦(관리자가 반영)
+g('vc').onclick=()=>{['p0','p1','p2'].forEach(x=>g(x).value='');g('pm').textContent='';g('pf').hidden=false;g('pout').hidden=true;g('pwd').showModal();g('p0').focus()};
+g('pcancel').onclick=g('pdone').onclick=()=>g('pwd').close();
+g('pf').onsubmit=async e=>{e.preventDefault();const m=g('pm'),b=g('pgo');m.textContent='';
+ const p0=g('p0').value,p1=g('p1').value,p2=g('p2').value;
+ if(p1!==p2)return m.textContent='새 비밀번호 두 칸이 다름';
+ if(p1.length<12)return m.textContent='새 비밀번호는 12자 이상';
+ if(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(p1))return m.textContent='새 비밀번호에 한글 사용 불가';
+ if(p1.trim()!==p1)return m.textContent='새 비밀번호 앞뒤 공백 불가';
+ if(p1.normalize('NFC')===p0.normalize('NFC'))return m.textContent='현재 비밀번호와 같음';
+ b.disabled=true;b.textContent='만드는 중…';
+ try{try{await unlock(ME.u,p0)}catch(_){throw new Error('현재 비밀번호가 맞지 않음')}
+  const pair=await S.generateKey(EC,true,['deriveBits']),s=rnd(16),jwk=await S.exportKey('jwk',pair.privateKey);
+  const k=await gEnc(await kek(p1,s,'encrypt'),te.encode(JSON.stringify({d:jwk})));
+  const pl={h:ME.h,s:b64(s),i:k.iv,k:k.ct,pub:b64(new Uint8Array(await S.exportKey('raw',pair.publicKey))),ts:Date.now()};
+  const mac=b64(new Uint8Array(await S.sign('HMAC',await macKey(ME.priv,await impPub(K.admin)),te.encode(JSON.stringify(pl)))));
+  const code='FSKPW1.'+btoa(JSON.stringify({...pl,mac})).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  g('pcode').value=code;g('pf').hidden=true;g('pout').hidden=false;
+ }catch(err){m.textContent=err.message||String(err)}finally{b.disabled=false;b.textContent='변경 코드 만들기';['p0','p1','p2'].forEach(x=>g(x).value='')}};
+g('pcopy').onclick=async()=>{try{await navigator.clipboard.writeText(g('pcode').value);g('pcopy').textContent='복사됨'}catch(_){g('pcode').select()}};
 </script>
 </body>
 </html>
