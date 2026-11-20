@@ -80,7 +80,7 @@ $range = if ($base) { "$base..$tip" } else { $tip }
 $cnt = (& git rev-list --count $range); if ($LASTEXITCODE -ne 0) { throw "커밋 범위 계산 실패: $range" }
 if ([int]$cnt -eq 0) { Write-Host '[4/5] 푸시할 커밋 없음 (원격과 같음) — 반영 상태만 확인' }
 else {
-  Write-Host "[4/5] 푸시할 커밋 $cnt개 점검·푸시"
+  Write-Host "[4/5] 푸시할 커밋 $($cnt)개 점검·푸시"
   Check --commits $range
   Run-Git push origin "$($tip):refs/heads/$Branch"
   Write-Host ('      커밋 ' + $tip.Substring(0, 7))
