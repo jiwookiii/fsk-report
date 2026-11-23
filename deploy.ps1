@@ -50,8 +50,8 @@ if ($lr -eq 0) {
 else { throw "원격 조회 실패 (코드 $lr) — 네트워크·로그인 확인" }
 
 # 관리 도구(site.mjs)가 data/를 바꾸는 중이면 반쪽 상태가 커밋되지 않게 같은 잠금을 잡음
-$lockPath = Join-Path $PSScriptRoot '..uild\secrets\.lock'; $lock = $null
-if (Test-Path -LiteralPath (Split-Path $lockPath)) { try { $lock = [IO.File]::Open($lockPath, 'CreateNew', 'Write', 'None') } catch { throw '관리 도구가 실행 중(build\secrets\.lock) — 끝난 뒤 다시 실행' } }
+$lockPath = Join-Path $PSScriptRoot '..\build\secrets\.lock'; $lock = $null
+if (Test-Path -LiteralPath (Split-Path $lockPath)) { try { $lock = [IO.File]::Open($lockPath, 'CreateNew', 'Write', 'None') } catch { throw '관리 도구가 실행 중(build\secrets\.lock) — 끝난 뒤 다시 실행. 아무것도 실행 중이 아니면(강제 종료·정전 뒤) build 폴더에서 node tools/site.mjs recover' } }
 try {
 Write-Host '[2/5] 변경 내역'
 & git status -s
